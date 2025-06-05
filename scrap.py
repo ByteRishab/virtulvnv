@@ -113,11 +113,11 @@ def jobsearch(role_=None,expinyears=None,location_=None):
     poststring = role_string + location_string + f"&experience={expinyears}&nignbevent_src=jobsearchDeskGNB"
 
     jobsearchurl = f"{base_url}{randldash}{poststring}"
-    driver.get(jobsearchurl)
+    # driver.get(jobsearchurl)
     return jobsearchurl
 
 url = jobsearch(['Data Analyst','mis'],1,['noida'])
-# print(url)
+print(url)
 import requests
 from bs4 import BeautifulSoup
 
