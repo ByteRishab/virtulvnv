@@ -122,6 +122,61 @@ import requests
 from bs4 import BeautifulSoup
 
 source_html = driver.page_source
+# outermost_cards[i] - gets all the rows
+def extract_job_data(cards):
+    all_data = []
+    for card in cards:
+        
+        data = {}
+        a_tag = card.select_one('div.row1 > h2 > a')
+        data['title'] = a_tag.text.strip()
+        data['jobposting_url'] = a_tag['href']
+
+        try:
+            company_tag = card.select_one('div.row2 > span > a')
+            data['company_page'] = company_tag['href']
+            data['Posted by'] = company_tag.text.strip()
+            reviews_available = True
+        except:
+            fallback_tag = card.select_one('div.row2 > div > a')
+            data['company_page'] = fallback_tag['href']
+            data['Posted by'] = fallback_tag.text.strip()
+            reviews_available = False
+
+        if reviews_available:
+            rating_tag = card.select_one('div.row2 > span > a:nth-child(2) > span:nth-child(2)')
+            reviews_tag = card.select_one('div.row2 > span > a:nth-child(3)')
+            if rating_tag and reviews_tag:
+                data['rating'] = rating_tag.text
+                data['no_of_reviews'] = reviews_tag.text.replace('  Reviews', '')
+                data['reviews_page_url'] = reviews_tag['href']
+            else:
+                data['rating'] = data['no_of_reviews'] = data['reviews_page_url'] = None
+        else:
+            data['rating'] = data['no_of_reviews'] = data['reviews_page_url'] = None
+
+        exp = card.select_one('div.row3 > div.job-details > span.exp-wrap')
+        data['experience'] = exp.text.replace(' Yrs', '') if exp else None
+
+        salary = card.select_one('div.row3 > div.job-details > span.sal-wrap.ver-line > span > span')
+        data['salary_offered'] = salary['title'].replace(' Lacs PA', '') if salary else None
+
+        loc = card.select_one('div.row3 > div.job-details > span.loc-wrap.ver-line > span > span')
+        data['location(s)'] = loc['title'] if loc else None
+
+        overview = card.select_one('div.row4 > span')
+        data['overview_text'] = overview.text.strip() if overview else None
+
+        keywords = [li.text.strip() for li in card.select('div.row5 > ul > li')]
+        data['key_words'] = ', '.join(keywords)
+
+        post_day = card.select_one('div.row6 > span.job-post-day')
+        data['days ago'] = post_day.text.strip() if post_day else None
+        all_data.append(data)
+        df = pd.DataFrame(all_data)
+    return df
+
+
 
 
 
