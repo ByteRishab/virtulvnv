@@ -1,182 +1,138 @@
 import sys
 import subprocess
 import importlib
+import re
 import time as t
-def get_package(*packages):
-    for package_name in packages:
-        try:
-            importlib.import_module(package_name)
-        except ImportError:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
-        finally:
-            globals()[package_name] = importlib.import_module(package_name)
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
 from selenium import webdriver
-profile_data = [r"c:\seleniumprofile","Default"]
-
-# for the seleium profile, it has to be cloned from the path of the user_data of the chrome browser
-# the path has to be cloned on c:\seleniumprofile
-# before that selenium profile directory has to be created
-driver_path = r"C:\seleniumprofile\chromedriver.exe"
-
-# the chrome has to be downloaded on a standard directory, and it shall be within seleniumprofile 
-
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.alert import Alert
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service as chromeservice
 
-options = webdriver.ChromeOptions()
-# makes 
-options.add_argument(rf"user-data-dir={profile_data[0]}")
-options.add_argument(rf"profile-directory={profile_data[1]}")
-
-# function for making the browser headless and is supposed be executed before initialising the browser
-def headless():
-    options.add_argument('--headless')
-    options.add_argument("--window-size=1920x1080")
-    options.add_argument("--disable-infobars")
-    options.add_argument("--disable-blink-features=CSSAnimations,CSSTransitions")
-# detaches the browser's instance dependency on code execution, and makes the window standalone
-options.add_experimental_option("detach", True)
-# removes the "this window is opened by automation test software notice"
-options.add_experimental_option("excludeSwitches", ["enable-automation"])
-
-# chrome should successfully be initiated by this line, 
-driver = webdriver.Chrome(service=chromeservice(driver_path),options=options)
-
-# login on naukri
-naukri_standard_url = 'https://www.naukri.com'
-naukri_login_url = 'https://www.naukri.com/mnjuser/homepage'
-driver.get(naukri_login_url)
-
-# the below function shortens the syntax for driver.find_element() and for driver.find_elements() for ease ahead
-def find(method='c',selector=None ):
-    if method.lower() == "c":
-        return driver.find_element('css selector',selector)
-    elif method.lower() == "cm":
-        return driver.find_elements('css selector',selector)
-    elif method.lower() == "x":
-        return driver.find_element('xpath',selector)
-    elif method.lower() == "xm":
-        return driver.find_elements('xpath',selector)
-    elif method.lower() == "n":
-        return driver.find_element('name',selector)
-# function for logging out
-def log_out():
-    driver.delete_all_cookies()
-    driver.get(driver.current_url)
-
-
-
-# if naukri_login_url not in driver.current_url:
-#     Login_but_selector = "#login_Layer"
-#     email_field_selector = "#root > div > div > div > div > div > div > form > div:nth-child(2) > input"
-#     pass_field_selector = "#root > div > div > div > div > div > div > form > div:nth-child(3) > input"
-#     login_but = "#root > div > div > div > div > div > div > form > div:nth-child(6) > button"
-#     find('c',Login_but_selector).click()
-#     WebDriverWait(driver,3).until(EC.visibility_of_element_located((By.CSS_SELECTOR,email_field_selector))).send_keys('rishabsonak@gmail.com')
-#     find('c',pass_field_selector).send_keys('Naukri@12345')
-#     find('c',login_but).click()
-#     WebDriverWait(driver,3).until(EC.visibility_of_element_located((By.CSS_SELECTOR,"body > main > div > div > div.user-details.br-10.border.left-section > div > div.other-info-wrapper > div.view-profile-wrapper > a")))
-# else:
-#     email_field_selector = "#usernameField"
-#     pass_field_selector = "#passwordField"
-#     login_but = "#loginForm > div:nth-child(2) > div > div > button.waves-effect.waves-light.btn-large.btn-block.btn-bold.blue-btn.textTransform"
-#     WebDriverWait(driver,3).until(EC.visibility_of_element_located((By.CSS_SELECTOR,email_field_selector))).send_keys('rishabsonak@gmail.com')
-#     find('c',pass_field_selector).send_keys('Naukri@12345')
-#     find('c',login_but).click()
-#     WebDriverWait(driver,3).until(EC.visibility_of_element_located((By.CSS_SELECTOR,"body > main > div > div > div.user-details.br-10.border.left-section > div > div.other-info-wrapper > div.view-profile-wrapper > a")))
-#search_url_formation
-
-# search URl for MIS
-import re
-
-
-def jobsearch(role_=None,expinyears=None,location_=None):
-    base_url = 'https://www.naukri.com/'
-    role = [re.sub(r'\s+', ' ', r.lower()).strip().replace(' ','-') for r in role_]
-    role_string = '-'.join(role) + "-jobs"
-
-    location = re.sub(r'\s+', ' ', location_[0].lower()).strip().replace(' ','-')
-    location_string = '-in-' + location
-    randldash = role_string + location_string + "?k="
-
-    role = [re.sub(r'\s+', ' ', r.lower()).strip().replace(' ','%20') for r in role_]
-    role_string = '%2C%20'.join(role)
-
-    location = [re.sub(r'\s+', ' ', r.lower()).strip().replace(' ','%20') for r in location_]
-    location_string = "&l=" + '%2C%20'.join(location)
-    expinyears = 1
-    poststring = role_string + location_string + f"&experience={expinyears}&nignbevent_src=jobsearchDeskGNB"
-
-    jobsearchurl = f"{base_url}{randldash}{poststring}"
-    # driver.get(jobsearchurl)
-    return jobsearchurl
-
-url = jobsearch(['Data Analyst','mis'],1,['noida'])
-print(url)
-import requests
-from bs4 import BeautifulSoup
-
-source_html = driver.page_source
-# outermost_cards[i] - gets all the rows
-def extract_job_data(cards):
-    all_data = []
-    for card in cards:
-        
-        data = {}
-        a_tag = card.select_one('div.row1 > h2 > a')
-        data['title'] = a_tag.text.strip()
-        data['jobposting_url'] = a_tag['href']
-
+# --- Auto Install Missing Packages ---
+def get_package(*packages):
+    for package in packages:
         try:
-            company_tag = card.select_one('div.row2 > span > a')
-            data['company_page'] = company_tag['href']
-            data['Posted by'] = company_tag.text.strip()
-            reviews_available = True
-        except:
-            fallback_tag = card.select_one('div.row2 > div > a')
-            data['company_page'] = fallback_tag['href']
-            data['Posted by'] = fallback_tag.text.strip()
-            reviews_available = False
+            importlib.import_module(package)
+        except ImportError:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        finally:
+            globals()[package] = importlib.import_module(package)
 
-        if reviews_available:
-            rating_tag = card.select_one('div.row2 > span > a:nth-child(2) > span:nth-child(2)')
-            reviews_tag = card.select_one('div.row2 > span > a:nth-child(3)')
-            if rating_tag and reviews_tag:
-                data['rating'] = rating_tag.text
-                data['no_of_reviews'] = reviews_tag.text.replace('  Reviews', '')
-                data['reviews_page_url'] = reviews_tag['href']
+# --- Browser Setup ---
+def setup_driver(profile_path="C:\\seleniumprofile", profile_dir="Default", driver_path="C:\\seleniumprofile\\chromedriver.exe", headless_mode=False):
+    options = webdriver.ChromeOptions()
+    options.add_argument(f"user-data-dir={profile_path}")
+    options.add_argument(f"profile-directory={profile_dir}")
+    options.add_experimental_option("detach", True)
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+
+    if headless_mode:
+        options.add_argument('--headless')
+        options.add_argument("--window-size=1920x1080")
+        options.add_argument("--disable-infobars")
+        options.add_argument("--disable-blink-features=CSSAnimations,CSSTransitions")
+
+    service = ChromeService(driver_path)
+    driver = webdriver.Chrome(service=service, options=options)
+    return driver
+
+# --- Simplified Element Lookup ---
+def find(driver, method='c', selector=None):
+    methods = {
+        'c': lambda: driver.find_element(By.CSS_SELECTOR, selector),
+        'cm': lambda: driver.find_elements(By.CSS_SELECTOR, selector),
+        'x': lambda: driver.find_element(By.XPATH, selector),
+        'xm': lambda: driver.find_elements(By.XPATH, selector),
+        'n': lambda: driver.find_element(By.NAME, selector),
+    }
+    return methods.get(method.lower(), lambda: None)()
+
+# --- Job Search URL Constructor ---
+def build_jobsearch_url(roles, experience=1, locations=None):
+    base_url = 'https://www.naukri.com/'
+
+    role_slug = '-'.join([re.sub(r'\s+', '-', r.strip().lower()) for r in roles]) + "-jobs"
+    loc_slug = '-in-' + re.sub(r'\s+', '-', locations[0].strip().lower()) if locations else ''
+    query_roles = '%2C%20'.join([r.strip().lower().replace(' ', '%20') for r in roles])
+    query_locs = '&l=' + '%2C%20'.join([l.strip().lower().replace(' ', '%20') for l in locations]) if locations else ''
+
+    search_query = f"{query_roles}{query_locs}&experience={experience}&nignbevent_src=jobsearchDeskGNB"
+    return f"{base_url}{role_slug}{loc_slug}?k={search_query}"
+
+# --- Scraper Logic ---
+def extract_job_data(driver):
+    soup = BeautifulSoup(driver.page_source, "lxml")
+    cards = soup.select('#listContainer > div > div > div.srp-jobtuple-wrapper > div')
+    all_data = []
+
+    for card in cards:
+        data = {}
+        try:
+            a_tag = card.select_one('div.row1 > h2 > a')
+            data['title'] = a_tag.text.strip()
+            data['jobposting_url'] = a_tag['href']
+
+            try:
+                company_tag = card.select_one('div.row2 > span > a')
+                data['company_page'] = company_tag['href']
+                data['Posted by'] = company_tag.text.strip()
+                reviews_available = True
+            except:
+                fallback = card.select_one('div.row2 > div > a')
+                data['company_page'] = fallback['href']
+                data['Posted by'] = fallback.text.strip()
+                reviews_available = False
+
+            if reviews_available:
+                rating = card.select_one('div.row2 > span > a:nth-child(2) > span:nth-child(2)')
+                reviews = card.select_one('div.row2 > span > a:nth-child(3)')
+                data['rating'] = rating.text if rating else None
+                data['no_of_reviews'] = reviews.text.replace('  Reviews', '') if reviews else None
+                data['reviews_page_url'] = reviews['href'] if reviews else None
             else:
                 data['rating'] = data['no_of_reviews'] = data['reviews_page_url'] = None
-        else:
-            data['rating'] = data['no_of_reviews'] = data['reviews_page_url'] = None
 
-        exp = card.select_one('div.row3 > div.job-details > span.exp-wrap')
-        data['experience'] = exp.text.replace(' Yrs', '') if exp else None
+            data['experience'] = card.select_one('div.row3 > div.job-details > span.exp-wrap').text.replace(' Yrs', '') if card.select_one('div.row3 > div.job-details > span.exp-wrap') else None
 
-        salary = card.select_one('div.row3 > div.job-details > span.sal-wrap.ver-line > span > span')
-        data['salary_offered'] = salary['title'].replace(' Lacs PA', '') if salary else None
+            salary = card.select_one('div.row3 > div.job-details > span.sal-wrap.ver-line > span > span')
+            data['salary_offered'] = salary['title'].replace(' Lacs PA', '') if salary else None
 
-        loc = card.select_one('div.row3 > div.job-details > span.loc-wrap.ver-line > span > span')
-        data['location(s)'] = loc['title'] if loc else None
+            loc = card.select_one('div.row3 > div.job-details > span.loc-wrap.ver-line > span > span')
+            data['location(s)'] = loc['title'] if loc else None
 
-        overview = card.select_one('div.row4 > span')
-        data['overview_text'] = overview.text.strip() if overview else None
+            overview = card.select_one('div.row4 > span')
+            data['overview_text'] = overview.text.strip() if overview else None
 
-        keywords = [li.text.strip() for li in card.select('div.row5 > ul > li')]
-        data['key_words'] = ', '.join(keywords)
+            keywords = [li.text.strip() for li in card.select('div.row5 > ul > li')]
+            data['key_words'] = ', '.join(keywords)
 
-        post_day = card.select_one('div.row6 > span.job-post-day')
-        data['days ago'] = post_day.text.strip() if post_day else None
-        all_data.append(data)
-        df = pd.DataFrame(all_data)
-    return df
+            posted = card.select_one('div.row6 > span.job-post-day')
+            data['days ago'] = posted.text.strip() if posted else None
 
+            all_data.append(data)
 
+        except Exception as e:
+            print(f"[!] Skipping card due to error: {e}")
+            continue
 
+    return pd.DataFrame(all_data)
 
+# --- Main Entry Point ---
+def main():
+    driver = setup_driver()
+    driver.get("https://www.naukri.com/mnjuser/homepage")
 
+    url = build_jobsearch_url(['Data Analyst', 'MIS'], experience=1, locations=['Noida'])
+    print(f"Navigating to job search URL:\n{url}\n")
+    driver.get(url)
+
+    df = extract_job_data(driver)
+    df.to_csv("job_data.csv", index=False)
+    print("✅ Job data saved to 'job_data.csv'.")
+
+if __name__ == "__main__":
+    main()
